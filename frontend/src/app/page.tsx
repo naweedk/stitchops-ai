@@ -1,172 +1,345 @@
+"use client";
+
 /**
- * Home Page — src/app/page.tsx
+ * StitchOps AI — Manufacturing Management Dashboard
+ * src/app/page.tsx
  *
- * SERVER COMPONENT — no "use client".
- * Uses MUI components directly in a Server Component — this works because
- * MUI v7 is compatible with RSC. The Emotion styles are collected server-side
- * by our AppThemeProvider registry and injected into the HTML stream.
- *
- * This page demonstrates:
- * - MUI Typography, Box, Container, Stack, Paper, Chip, Divider
- * - Theme color usage via the `color` prop and `sx` prop
- * - Responsive layout with MUI's breakpoint system
- *
- * This is NOT the final dashboard — it is a visual smoke test to confirm
- * that MUI renders correctly with our theme and Emotion SSR setup.
+ * Full-stack interactive dashboard:
+ * - Orders Board powered by MUI X Data Grid
+ * - Customer Directory with buyer profiles
+ * - Production stage status management
+ * - Live connection to NestJS REST API
  */
 
-import type { Metadata } from 'next'
-import Box from '@mui/material/Box'
-import Container from '@mui/material/Container'
-import Typography from '@mui/material/Typography'
-import Stack from '@mui/material/Stack'
-import Paper from '@mui/material/Paper'
-import Chip from '@mui/material/Chip'
-import Divider from '@mui/material/Divider'
-import BackendStatus from '@/components/BackendStatus'
+import { useState, useEffect } from "react";
+import Box from "@mui/material/Box";
+import Container from "@mui/material/Container";
+import Typography from "@mui/material/Typography";
+import Stack from "@mui/material/Stack";
+import Button from "@mui/material/Button";
+import Tabs from "@mui/material/Tabs";
+import Tab from "@mui/material/Tab";
+import Paper from "@mui/material/Paper";
+import Alert from "@mui/material/Alert";
+import CircularProgress from "@mui/material/CircularProgress";
+import AddIcon from "@mui/icons-material/Add";
+import PeopleAltOutlinedIcon from "@mui/icons-material/PeopleAltOutlined";
+import AssignmentOutlinedIcon from "@mui/icons-material/AssignmentOutlined";
+import PrecisionManufacturingOutlinedIcon from "@mui/icons-material/PrecisionManufacturingOutlined";
+// import BackendStatus from '@/components/BackendStatus'
+import OrdersDataGrid from "@/features/orders/OrdersDataGrid";
+import CreateOrderDialog from "@/features/orders/CreateOrderDialog";
+import CustomerList from "@/features/customers/CustomerList";
+import CreateCustomerDialog from "@/features/customers/CreateCustomerDialog";
+import { customerApi, orderApi } from "@/lib/api";
+import type { Customer } from "@/types/customer";
+import type { Order, OrderStatus } from "@/types/order";
 
-export const metadata: Metadata = {
-  title: 'Home',
-}
+export default function DashboardPage() {
+  const [activeTab, setActiveTab] = useState<number>(0);
+  const [customers, setCustomers] = useState<Customer[]>([]);
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
 
-// Feature cards shown on the homepage — represents what the platform will do
-const features = [
-  { label: 'Order Management', icon: '📋', desc: 'Track garment orders end-to-end' },
-  { label: 'Worker Tracking', icon: '👷', desc: 'Monitor productivity and assignments' },
-  { label: 'Inventory Control', icon: '📦', desc: 'Manage fabric and materials' },
-  { label: 'Production Planning', icon: '🏭', desc: 'Plan capacity and schedules' },
-  { label: 'AI Insights', icon: '🤖', desc: 'Gemini-powered business intelligence' },
-  { label: 'Analytics', icon: '📊', desc: 'Reports and performance metrics' },
-] as const
+  // Dialog visibility states
+  const [isCustomerDialogOpen, setIsCustomerDialogOpen] = useState(false);
+  const [isOrderDialogOpen, setIsOrderDialogOpen] = useState(false);
 
-export default function HomePage() {
+  useEffect(() => {
+    let ignore = false;
+
+    async function init() {
+      try {
+        const [customersData, ordersData] = await Promise.all([
+          customerApi.list().catch(() => []),
+          orderApi.list().catch(() => []),
+        ]);
+        if (!ignore) {
+          setCustomers(customersData);
+          setOrders(ordersData);
+        }
+      } catch (err) {
+        if (!ignore) {
+          setError((err as Error).message);
+        }
+      } finally {
+        if (!ignore) {
+          setIsLoading(false);
+        }
+      }
+    }
+
+    init();
+    return () => {
+      ignore = true;
+    };
+  }, []);
+
+  // Handle stage status transition
+  const handleStatusChange = async (
+    orderId: string,
+    newStatus: OrderStatus,
+  ) => {
+    try {
+      const updated = await orderApi.updateStatus(orderId, newStatus);
+      setOrders((prev) =>
+        prev.map((o) =>
+          o.id === orderId ? { ...o, status: updated.status } : o,
+        ),
+      );
+    } catch (err) {
+      alert(`Could not update status: ${(err as Error).message}`);
+    }
+  };
+
+  // Handle customer deletion
+  const handleDeleteCustomer = async (id: string) => {
+    if (
+      !confirm(
+        "Are you sure you want to delete this customer? All associated orders will be removed.",
+      )
+    ) {
+      return;
+    }
+    try {
+      await customerApi.delete(id);
+      setCustomers((prev) => prev.filter((c) => c.id !== id));
+      setOrders((prev) => prev.filter((o) => o.customerId !== id));
+    } catch (err) {
+      alert(`Could not delete customer: ${(err as Error).message}`);
+    }
+  };
+
+  // Handle order deletion
+  const handleDeleteOrder = async (id: string) => {
+    if (!confirm("Are you sure you want to delete this production order?")) {
+      return;
+    }
+    try {
+      await orderApi.delete(id);
+      setOrders((prev) => prev.filter((o) => o.id !== id));
+    } catch (err) {
+      alert(`Could not delete order: ${(err as Error).message}`);
+    }
+  };
+
+  // Quick stats calculation
+  const totalPiecesInProduction = orders
+    .filter((o) => !["DELIVERED", "CANCELLED"].includes(o.status))
+    .reduce((sum, o) => sum + (o.totalQuantity || 0), 0);
+
+  const activeOrdersCount = orders.filter(
+    (o) => !["DELIVERED", "CANCELLED"].includes(o.status),
+  ).length;
+
   return (
-    <Box
-      component="main"
-      sx={{
-        minHeight: '100vh',
-        // bgcolor reads from theme.palette.background.default = '#F5F7FA'
-        bgcolor: 'background.default',
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-        py: 6, // py = paddingY, in MUI 1 unit = 8px, so py:6 = 48px
-      }}
-    >
-      <Container maxWidth="md">
-        <Stack spacing={4} alignItems="center">
+    <Box sx={{ minHeight: "100vh", bgcolor: "background.default", pb: 8 }}>
+      {/* ----------------------------------------------------------------------
+       * Top App Bar
+       * --------------------------------------------------------------------- */}
+      <Box
+        sx={{
+          bgcolor: "background.paper",
+          borderBottom: "1px solid",
+          borderColor: "divider",
+          py: 2,
+        }}
+      >
+        <Container maxWidth="xl">
+          <Stack
+            direction={{ xs: "column", md: "row" }}
+            justifyContent="space-between"
+            alignItems={{ xs: "flex-start", md: "center" }}
+            spacing={2}
+          >
+            <Stack direction="row" spacing={1.5} alignItems="center">
+              <PrecisionManufacturingOutlinedIcon
+                sx={{ fontSize: 36, color: "primary.main" }}
+              />
+              <Box>
+                <Typography variant="h5" fontWeight={700} color="primary.main">
+                  StitchOps AI
+                </Typography>
+                <Typography variant="caption" color="text.secondary">
+                  Smart Manufacturing Management Platform
+                </Typography>
+              </Box>
+            </Stack>
 
-          {/* ----------------------------------------------------------------
-           * Header
-           * --------------------------------------------------------------- */}
-          <Stack spacing={1} alignItems="center" textAlign="center">
-            <Chip
-              label="Development Preview"
-              color="secondary"
-              size="small"
-              sx={{ fontWeight: 600 }}
-            />
-            <Typography
-              variant="h2"
-              component="h1"
-              sx={{
-                fontWeight: 700,
-                // color reads from theme.palette.primary.main = '#1565C0'
-                color: 'primary.main',
-                fontSize: { xs: '2rem', sm: '3rem' }, // responsive font size
-              }}
+            <Stack
+              direction="row"
+              spacing={1.5}
+              alignItems="center"
+              flexWrap="wrap"
             >
-              StitchOps AI
-            </Typography>
-            <Typography
-              variant="h5"
-              component="p"
-              sx={{ color: 'text.secondary', fontWeight: 400 }}
-            >
-              Smart Manufacturing Management
-            </Typography>
-            <Typography variant="body2" sx={{ color: 'text.disabled', mt: 1 }}>
-              AI-powered platform for garment manufacturing businesses
-            </Typography>
+              {/* <BackendStatus /> */}
+
+              <Button
+                variant="outlined"
+                startIcon={<AddIcon />}
+                onClick={() => setIsCustomerDialogOpen(true)}
+              >
+                New Customer
+              </Button>
+
+              <Button
+                variant="contained"
+                startIcon={<AddIcon />}
+                onClick={() => setIsOrderDialogOpen(true)}
+              >
+                New Order
+              </Button>
+            </Stack>
           </Stack>
+        </Container>
+      </Box>
 
-          <Divider sx={{ width: '100%' }} />
+      {/* ----------------------------------------------------------------------
+       * Main Content
+       * --------------------------------------------------------------------- */}
+      <Container maxWidth="xl" sx={{ mt: 4 }}>
+        <Stack spacing={3}>
+          {error && <Alert severity="error">{error}</Alert>}
 
-          {/* ----------------------------------------------------------------
-           * Feature Cards
-           * MUI Paper = white card with elevation/shadow
-           * --------------------------------------------------------------- */}
+          {/* Quick Metrics Bar */}
           <Box
             sx={{
-              display: 'grid',
-              // Responsive grid: 1 column on mobile, 2 on tablet, 3 on desktop
+              display: "grid",
               gridTemplateColumns: {
-                xs: '1fr',
-                sm: 'repeat(2, 1fr)',
-                md: 'repeat(3, 1fr)',
+                xs: "1fr",
+                sm: "repeat(3, 1fr)",
               },
               gap: 2,
-              width: '100%',
             }}
           >
-            {features.map((feature) => (
-              <Paper
-                key={feature.label}
-                elevation={0} // elevation:0 uses our custom boxShadow from theme
+            <Paper variant="outlined" sx={{ p: 2.5, borderRadius: 2 }}>
+              <Typography
+                variant="caption"
+                color="text.secondary"
+                fontWeight={600}
+              >
+                TOTAL REGISTERED BUYERS
+              </Typography>
+              <Typography variant="h4" fontWeight={700} sx={{ mt: 0.5 }}>
+                {customers.length}
+              </Typography>
+            </Paper>
+
+            <Paper variant="outlined" sx={{ p: 2.5, borderRadius: 2 }}>
+              <Typography
+                variant="caption"
+                color="text.secondary"
+                fontWeight={600}
+              >
+                ACTIVE PRODUCTION ORDERS
+              </Typography>
+              <Typography
+                variant="h4"
+                fontWeight={700}
+                color="primary.main"
+                sx={{ mt: 0.5 }}
+              >
+                {activeOrdersCount}
+              </Typography>
+            </Paper>
+
+            <Paper variant="outlined" sx={{ p: 2.5, borderRadius: 2 }}>
+              <Typography
+                variant="caption"
+                color="text.secondary"
+                fontWeight={600}
+              >
+                GARMENT PIECES ON FLOOR
+              </Typography>
+              <Typography
+                variant="h4"
+                fontWeight={700}
+                color="secondary.main"
+                sx={{ mt: 0.5 }}
+              >
+                {totalPiecesInProduction.toLocaleString()} pcs
+              </Typography>
+            </Paper>
+          </Box>
+
+          {/* Section Tabs */}
+          <Paper variant="outlined" sx={{ borderRadius: 2 }}>
+            <Box sx={{ borderBottom: 1, borderColor: "divider", px: 2 }}>
+              <Tabs
+                value={activeTab}
+                onChange={(_e, v) => setActiveTab(v)}
                 sx={{
-                  p: 3,
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: 1,
-                  // border adds a subtle outline — cleaner than shadow alone
-                  border: '1px solid',
-                  borderColor: 'divider',
-                  borderRadius: 2, // theme.shape.borderRadius * 2 = 16px
-                  transition: 'border-color 0.2s',
-                  '&:hover': {
-                    borderColor: 'primary.main',
+                  "& .MuiTab-root": {
+                    textTransform: "none",
+                    fontWeight: 600,
+                    fontSize: "0.95rem",
                   },
                 }}
               >
-                <Typography variant="h4" component="span" sx={{ lineHeight: 1 }}>
-                  {feature.icon}
-                </Typography>
-                <Typography variant="subtitle1" fontWeight={600}>
-                  {feature.label}
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  {feature.desc}
-                </Typography>
-              </Paper>
-            ))}
-          </Box>
+                <Tab
+                  icon={<AssignmentOutlinedIcon />}
+                  iconPosition="start"
+                  label={`Orders Board (${orders.length})`}
+                />
+                <Tab
+                  icon={<PeopleAltOutlinedIcon />}
+                  iconPosition="start"
+                  label={`Customers Directory (${customers.length})`}
+                />
+              </Tabs>
+            </Box>
 
-          {/* ----------------------------------------------------------------
-           * Status Banner & Backend Communication
-           * --------------------------------------------------------------- */}
-          <Paper
-            elevation={0}
-            sx={{
-              px: 4,
-              py: 2,
-              bgcolor: 'primary.main',
-              color: 'primary.contrastText',
-              borderRadius: 2,
-              width: '100%',
-              textAlign: 'center',
-            }}
-          >
-            <Typography variant="body2" fontWeight={500}>
-              ✅ MUI v7 · Emotion SSR · Next.js 16 App Router · React 19 · TypeScript 5
-            </Typography>
+            <Box sx={{ p: 3 }}>
+              {isLoading ? (
+                <Box sx={{ py: 8, display: "flex", justifyContent: "center" }}>
+                  <CircularProgress />
+                </Box>
+              ) : activeTab === 0 ? (
+                <OrdersDataGrid
+                  orders={orders}
+                  onStatusChange={handleStatusChange}
+                  onDelete={handleDeleteOrder}
+                />
+              ) : (
+                <CustomerList
+                  customers={customers}
+                  onDelete={handleDeleteCustomer}
+                />
+              )}
+            </Box>
           </Paper>
-
-          {/* Live Full-Stack Communication Indicator */}
-          <BackendStatus />
-
         </Stack>
       </Container>
+
+      {/* Create Dialogs */}
+      <CreateCustomerDialog
+        open={isCustomerDialogOpen}
+        onClose={() => setIsCustomerDialogOpen(false)}
+        onSuccess={(newCustomer) => {
+          setCustomers((prev) => [newCustomer, ...prev]);
+        }}
+      />
+
+      <CreateOrderDialog
+        open={isOrderDialogOpen}
+        customers={customers}
+        onClose={() => setIsOrderDialogOpen(false)}
+        onSuccess={(newOrder) => {
+          setOrders((prev) => [newOrder, ...prev]);
+          // Update order count for customer
+          setCustomers((prev) =>
+            prev.map((c) =>
+              c.id === newOrder.customerId
+                ? {
+                    ...c,
+                    _count: { orders: (c._count?.orders ?? 0) + 1 },
+                  }
+                : c,
+            ),
+          );
+        }}
+      />
     </Box>
-  )
+  );
 }
