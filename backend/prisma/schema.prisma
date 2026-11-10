@@ -1,13 +1,10 @@
 // =============================================================================
-// StitchOps AI — Prisma Schema Configuration
+// StitchOps AI — Prisma Schema Definition
 // =============================================================================
-// This file configures Prisma ORM for PostgreSQL.
-//
-// Key Principles:
-// 1. DATABASE_URL is read exclusively from environment variables (never hardcoded).
-// 2. Models will be designed and implemented systematically during the database
-//    design milestone (Milestone 8 focuses on infrastructure and client setup).
-// 3. No migrations are applied until domain models are formally defined and reviewed.
+// Garment Manufacturing Management Data Models:
+// - Customers (Retailers, Brands, Wholesale buyers)
+// - Orders (Production orders with scheduling, status & priority)
+// - OrderItems (Style, color, size breakdown, quantities, and pricing)
 // =============================================================================
 
 generator client {
@@ -17,4 +14,97 @@ generator client {
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
+}
+
+// -----------------------------------------------------------------------------
+// Enums
+// -----------------------------------------------------------------------------
+
+enum OrderStatus {
+  PENDING             // Order received, awaiting confirmation
+  CONFIRMED           // Confirmed and scheduled for production
+  CUTTING             // Fabric cutting stage
+  STITCHING           // Assembly / sewing stage
+  FINISHING           // Pressing, buttoning, packaging
+  QUALITY_CHECK       // Final inspection and QC approval
+  READY_FOR_DISPATCH  // Packaged and awaiting shipping
+  DELIVERED           // Delivered to customer
+  CANCELLED           // Cancelled order
+}
+
+enum Priority {
+  LOW
+  NORMAL
+  HIGH
+  URGENT
+}
+
+enum PaymentStatus {
+  PENDING
+  PARTIAL
+  PAID
+}
+
+// -----------------------------------------------------------------------------
+// Models
+// -----------------------------------------------------------------------------
+
+model Customer {
+  id            String    @id @default(uuid())
+  name          String    // Brand or Business Name (e.g. "Apex Retail", "Urban Stitch")
+  contactPerson String?   @map("contact_person")
+  email         String?
+  phone         String?
+  address       String?
+  city          String?
+  taxId         String?   @map("tax_id") // GSTIN / Tax Identification
+  notes         String?
+
+  orders        Order[]
+
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  @@map("customers")
+}
+
+model Order {
+  id                 String        @id @default(uuid())
+  orderNumber        String        @unique @map("order_number") // e.g. "ORD-2026-0001"
+  customerId         String        @map("customer_id")
+  customer           Customer      @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  status             OrderStatus   @default(PENDING)
+  priority           Priority      @default(NORMAL)
+  paymentStatus      PaymentStatus @default(PENDING) @map("payment_status")
+
+  totalQuantity      Int           @default(0) @map("total_quantity")
+  totalAmount        Decimal       @default(0.0) @map("total_amount") @db.Decimal(12, 2)
+  targetDeliveryDate DateTime?     @map("target_delivery_date")
+  notes              String?
+
+  items              OrderItem[]
+
+  createdAt          DateTime      @default(now()) @map("created_at")
+  updatedAt          DateTime      @updatedAt @map("updated_at")
+
+  @@map("orders")
+}
+
+model OrderItem {
+  id        String   @id @default(uuid())
+  orderId   String   @map("order_id")
+  order     Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  styleName String   @map("style_name") // e.g. "Slim-Fit Polo T-Shirt"
+  sku       String?  // Stock Keeping Unit / Pattern code
+  color     String   // e.g. "Navy Blue"
+  size      String   // e.g. "S", "M", "L", "XL"
+  quantity  Int
+  unitPrice Decimal  @map("unit_price") @db.Decimal(10, 2)
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("order_items")
 }
