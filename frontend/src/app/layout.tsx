@@ -1,36 +1,29 @@
 /**
  * Root Layout — src/app/layout.tsx
  *
- * This is the top-level layout that wraps every page in the application.
+ * SERVER COMPONENT — no "use client" directive.
+ * This file runs only on the server. It can be async, fetch data,
+ * and render Client Components — but cannot use hooks or browser APIs.
  *
- * KEY CONCEPT — Server Component:
- * This file has NO "use client" directive at the top.
- * That means it is a React Server Component (RSC) — it runs only on the server,
- * never in the browser. The HTML it generates is sent directly to the client.
+ * PROVIDER STRUCTURE:
+ * This layout imports AppThemeProvider (a Client Component).
+ * That is intentional — Server Components CAN render Client Components.
+ * The key is that children passed to Client Components remain Server Components
+ * unless they themselves declare "use client".
  *
- * Server Components:
- * - Cannot use useState, useEffect, or other React hooks
- * - Cannot use browser APIs (window, document, localStorage)
- * - CAN be async — they can fetch data directly without useEffect
- * - CAN import and render Client Components
- *
- * This layout will be updated in Milestone 5 to wrap the app in
- * MUI ThemeProvider and Emotion cache.
+ *   RootLayout (Server)
+ *     └── AppThemeProvider (Client) ← handles Emotion SSR + MUI theme
+ *           └── {children}          ← each page, still a Server Component
  */
 
 import type { Metadata } from 'next'
+import AppThemeProvider from '@/providers/ThemeProvider'
 import './globals.css'
 
-/**
- * Page metadata
- *
- * Next.js reads this exported object to set <title> and <meta> tags.
- * Each page or layout can export its own metadata — they merge together.
- */
 export const metadata: Metadata = {
   title: {
     default: 'StitchOps AI',
-    // Template used by child pages: "Page Name | StitchOps AI"
+    // Child pages use this template: "Orders | StitchOps AI"
     template: '%s | StitchOps AI',
   },
   description: 'Smart AI-powered manufacturing management for garment businesses',
@@ -43,11 +36,18 @@ interface RootLayoutProps {
 export default function RootLayout({ children }: RootLayoutProps) {
   return (
     <html lang="en">
-      {/*
-       * <body> will gain MUI's CssBaseline in Milestone 5.
-       * For now, our globals.css handles the base reset.
-       */}
-      <body>{children}</body>
+      <body>
+        {/*
+         * AppThemeProvider is a Client Component that:
+         *   1. Sets up the Emotion cache for SSR style injection
+         *   2. Provides MUI ThemeProvider with our custom theme
+         *   3. Renders CssBaseline (MUI's CSS reset)
+         *
+         * Everything inside this provider has access to MUI theming
+         * and Emotion styles — including Server Component children.
+         */}
+        <AppThemeProvider>{children}</AppThemeProvider>
+      </body>
     </html>
   )
 }
