@@ -40,6 +40,7 @@ export interface Order {
   status: OrderStatus
   priority: Priority
   paymentStatus: PaymentStatus
+  currency?: string
   totalQuantity: number
   totalAmount: number
   targetDeliveryDate?: string | null
@@ -64,6 +65,7 @@ export interface CreateOrderItemInput {
 export interface CreateOrderInput {
   customerId: string
   priority?: Priority
+  currency?: string
   targetDeliveryDate?: string
   notes?: string
   items: CreateOrderItemInput[]

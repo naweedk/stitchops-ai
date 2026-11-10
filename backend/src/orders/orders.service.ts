@@ -52,6 +52,7 @@ export class OrdersService {
         orderNumber,
         customerId: createOrderDto.customerId,
         priority: createOrderDto.priority,
+        currency: createOrderDto.currency || 'USD',
         targetDeliveryDate: createOrderDto.targetDeliveryDate
           ? new Date(createOrderDto.targetDeliveryDate)
           : null,

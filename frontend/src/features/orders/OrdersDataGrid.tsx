@@ -51,6 +51,16 @@ const priorityColors: Record<Priority, 'default' | 'info' | 'warning' | 'error'>
   URGENT: 'error',
 }
 
+const currencySymbols: Record<string, string> = {
+  USD: '$',
+  INR: '₹',
+  EUR: '€',
+  GBP: '£',
+  AED: 'AED ',
+  CAD: 'CA$',
+  AUD: 'A$',
+}
+
 const allStages: OrderStatus[] = [
   'PENDING',
   'CONFIRMED',
@@ -153,13 +163,20 @@ export default function OrdersDataGrid({
     {
       field: 'totalAmount',
       headerName: 'Order Value',
-      width: 130,
-      type: 'number',
-      valueFormatter: (value: number) =>
-        `$${Number(value || 0).toLocaleString(undefined, {
+      width: 140,
+      renderCell: (params: GridRenderCellParams<Order>) => {
+        const symbol = currencySymbols[params.row.currency || 'USD'] || '$'
+        const amount = Number(params.value || 0).toLocaleString(undefined, {
           minimumFractionDigits: 2,
           maximumFractionDigits: 2,
-        })}`,
+        })
+        return (
+          <Typography variant="body2" fontWeight={600}>
+            {symbol}
+            {amount}
+          </Typography>
+        )
+      },
     },
     {
       field: 'targetDeliveryDate',

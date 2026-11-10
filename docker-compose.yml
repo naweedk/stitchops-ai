@@ -10,7 +10,9 @@ services:
       POSTGRES_PASSWORD: stitchops_secret
       POSTGRES_DB: stitchops_db
     ports:
-      - '5432:5432'
+      # Port 5433 on the host maps to 5432 in the container
+      # This prevents collision with any existing local PostgreSQL on 5432
+      - '5433:5432'
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:

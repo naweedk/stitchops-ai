@@ -38,6 +38,15 @@ export class CreateOrderDto {
   readonly priority?: Priority;
 
   @ApiPropertyOptional({
+    description: 'Order billing currency code (e.g. USD, INR, EUR, GBP)',
+    example: 'USD',
+    default: 'USD',
+  })
+  @IsOptional()
+  @IsString()
+  readonly currency?: string;
+
+  @ApiPropertyOptional({
     description: 'Target delivery / dispatch completion date (ISO 8601)',
     example: '2026-12-15T00:00:00.000Z',
   })

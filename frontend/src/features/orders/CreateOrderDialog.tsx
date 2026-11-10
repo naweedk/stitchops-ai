@@ -43,7 +43,20 @@ const orderItemSchema = z.object({
 const orderSchema = z.object({
   customerId: z.string().min(1, 'Please select a customer'),
   priority: z.enum(['LOW', 'NORMAL', 'HIGH', 'URGENT']),
-  targetDeliveryDate: z.string().optional(),
+  currency: z.string(),
+  targetDeliveryDate: z
+    .string()
+    .optional()
+    .refine(
+      (val) => {
+        if (!val) return true
+        const selected = new Date(val)
+        const today = new Date()
+        today.setHours(0, 0, 0, 0)
+        return selected >= today
+      },
+      { message: 'Target delivery date cannot be in the past' },
+    ),
   notes: z.string().optional(),
   items: z.array(orderItemSchema).min(1, 'Order must contain at least 1 line item'),
 })
@@ -59,6 +72,16 @@ interface CreateOrderDialogProps {
 
 const standardSizes = ['XS', 'S', 'M', 'L', 'XL', 'XXL', '30', '32', '34', '36', 'Free']
 
+const currencies = [
+  { code: 'USD', symbol: '$', label: 'USD ($) — US Dollar' },
+  { code: 'INR', symbol: '₹', label: 'INR (₹) — Indian Rupee' },
+  { code: 'EUR', symbol: '€', label: 'EUR (€) — Euro' },
+  { code: 'GBP', symbol: '£', label: 'GBP (£) — British Pound' },
+  { code: 'AED', symbol: 'AED ', label: 'AED (AED) — UAE Dirham' },
+  { code: 'CAD', symbol: 'CA$', label: 'CAD (CA$) — Canadian Dollar' },
+  { code: 'AUD', symbol: 'A$', label: 'AUD (A$) — Australian Dollar' },
+]
+
 export default function CreateOrderDialog({
   open,
   customers,
@@ -66,6 +89,9 @@ export default function CreateOrderDialog({
   onSuccess,
 }: CreateOrderDialogProps) {
   const [serverError, setServerError] = useState<string | null>(null)
+
+  // Minimum allowed date is today (YYYY-MM-DD)
+  const todayString = new Date().toISOString().split('T')[0]
 
   const {
     register,
@@ -78,6 +104,7 @@ export default function CreateOrderDialog({
     defaultValues: {
       customerId: '',
       priority: 'NORMAL',
+      currency: 'USD',
       targetDeliveryDate: '',
       notes: '',
       items: [
@@ -98,8 +125,11 @@ export default function CreateOrderDialog({
     name: 'items',
   })
 
-  // Watch items to calculate live totals in the UI
+  // Watch items and selected currency to calculate live totals in the UI
   const watchedItems = useWatch({ control, name: 'items' }) || []
+  const selectedCurrencyCode = useWatch({ control, name: 'currency' }) || 'USD'
+  const activeCurrencySymbol =
+    currencies.find((c) => c.code === selectedCurrencyCode)?.symbol || '$'
   const liveTotalQuantity = watchedItems.reduce(
     (sum, item) => sum + (Number(item?.quantity) || 0),
     0,
@@ -116,6 +146,7 @@ export default function CreateOrderDialog({
       const created = await orderApi.create({
         customerId: values.customerId,
         priority: values.priority,
+        currency: values.currency,
         targetDeliveryDate: values.targetDeliveryDate
           ? new Date(values.targetDeliveryDate).toISOString()
           : undefined,
@@ -178,6 +209,22 @@ export default function CreateOrderDialog({
 
               <TextField
                 select
+                label="Billing Currency"
+                fullWidth
+                {...register('currency')}
+                defaultValue="USD"
+              >
+                {currencies.map((curr) => (
+                  <MenuItem key={curr.code} value={curr.code}>
+                    {curr.label}
+                  </MenuItem>
+                ))}
+              </TextField>
+            </Stack>
+
+            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+              <TextField
+                select
                 label="Production Priority"
                 fullWidth
                 {...register('priority')}
@@ -194,7 +241,13 @@ export default function CreateOrderDialog({
                 type="date"
                 fullWidth
                 InputLabelProps={{ shrink: true }}
+                inputProps={{ min: todayString }}
                 {...register('targetDeliveryDate')}
+                error={Boolean(errors.targetDeliveryDate)}
+                helperText={
+                  errors.targetDeliveryDate?.message ||
+                  'Must be today or a future date'
+                }
               />
             </Stack>
 
@@ -290,7 +343,7 @@ export default function CreateOrderDialog({
                       />
 
                       <TextField
-                        label="Unit Price ($)"
+                        label={`Unit Price (${activeCurrencySymbol})`}
                         type="number"
                         required
                         fullWidth
@@ -348,7 +401,8 @@ export default function CreateOrderDialog({
                 Total Pieces: <strong>{liveTotalQuantity.toLocaleString()} pcs</strong>
               </Typography>
               <Typography variant="subtitle1" fontWeight={700}>
-                Est. Total Value: ${liveTotalAmount.toLocaleString(undefined, {
+                Est. Total Value: {activeCurrencySymbol}
+                {liveTotalAmount.toLocaleString(undefined, {
                   minimumFractionDigits: 2,
                   maximumFractionDigits: 2,
                 })}

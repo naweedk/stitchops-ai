@@ -77,6 +77,7 @@ model Order {
   status             OrderStatus   @default(PENDING)
   priority           Priority      @default(NORMAL)
   paymentStatus      PaymentStatus @default(PENDING) @map("payment_status")
+  currency           String        @default("USD")
 
   totalQuantity      Int           @default(0) @map("total_quantity")
   totalAmount        Decimal       @default(0.0) @map("total_amount") @db.Decimal(12, 2)
