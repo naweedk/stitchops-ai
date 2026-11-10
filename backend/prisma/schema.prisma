@@ -1,0 +1,20 @@
+// =============================================================================
+// StitchOps AI — Prisma Schema Configuration
+// =============================================================================
+// This file configures Prisma ORM for PostgreSQL.
+//
+// Key Principles:
+// 1. DATABASE_URL is read exclusively from environment variables (never hardcoded).
+// 2. Models will be designed and implemented systematically during the database
+//    design milestone (Milestone 8 focuses on infrastructure and client setup).
+// 3. No migrations are applied until domain models are formally defined and reviewed.
+// =============================================================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
