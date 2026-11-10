@@ -15,6 +15,8 @@ import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { HealthModule } from './health/health.module';
 import { PrismaModule } from './prisma/prisma.module';
+import { CustomersModule } from './customers/customers.module';
+import { OrdersModule } from './orders/orders.module';
 
 @Module({
   imports: [
@@ -23,10 +25,13 @@ import { PrismaModule } from './prisma/prisma.module';
       isGlobal: true,
       envFilePath: ['.env.local', '.env'],
     }),
-    // Global Prisma ORM module
+    // Global database ORM module
     PrismaModule,
-    // Health status module
+    // System health check module
     HealthModule,
+    // Business domain modules
+    CustomersModule,
+    OrdersModule,
   ],
   controllers: [],
   providers: [],
