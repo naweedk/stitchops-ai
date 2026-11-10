@@ -4,17 +4,19 @@
     // Target modern JavaScript that all current browsers support
     "target": "ES2017",
     // DOM types for browser APIs, esnext for modern JS features
-    "lib": ["dom", "dom.iterable", "esnext"],
+    "lib": [
+      "dom",
+      "dom.iterable",
+      "esnext"
+    ],
     // Allow importing .js files alongside .ts (useful for some packages)
     "allowJs": true,
     // Skip type-checking of node_modules — dramatically speeds up builds
     "skipLibCheck": true,
-
     // --- Strictness ---
     // Enable ALL strict checks: strictNullChecks, noImplicitAny, etc.
     // This is what "real TypeScript" looks like — catches bugs before runtime
     "strict": true,
-
     // --- Module System ---
     // Don't emit compiled files — Next.js handles compilation internally
     "noEmit": true,
@@ -29,12 +31,10 @@
     // Each file is treated as a separate module — required for React JSX transform
     "isolatedModules": true,
     // Preserve JSX for Next.js to transform (don't compile JSX to React.createElement here)
-    "jsx": "preserve",
-
+    "jsx": "react-jsx",
     // --- Performance ---
     // Cache compilation results between runs for faster rebuilds
     "incremental": true,
-
     // --- Next.js Plugin ---
     // Enables the Next.js TypeScript plugin for better IDE support and type checking
     "plugins": [
@@ -42,15 +42,24 @@
         "name": "next"
       }
     ],
-
     // --- Path Aliases ---
     // @/* maps to src/* — enables clean imports like: import { Button } from '@/components/Button'
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": [
+        "./src/*"
+      ]
     }
   },
   // Which files TypeScript should check
-  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
+  "include": [
+    "next-env.d.ts",
+    "**/*.ts",
+    "**/*.tsx",
+    ".next/types/**/*.ts",
+    ".next/dev/types/**/*.ts"
+  ],
   // Always exclude node_modules from type checking
-  "exclude": ["node_modules"]
+  "exclude": [
+    "node_modules"
+  ]
 }
