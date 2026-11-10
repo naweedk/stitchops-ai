@@ -1,0 +1,37 @@
+/*
+ * globals.css
+ *
+ * Minimal base styles only.
+ * MUI's CssBaseline component will handle the full CSS reset once installed in Milestone 5.
+ * Do not put component styles here — MUI handles component styling through its theme system.
+ */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  max-width: 100vw;
+  overflow-x: hidden;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  /* System font stack — will be overridden by MUI theme in Milestone 5 */
+  font-family:
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    'Segoe UI',
+    Roboto,
+    Oxygen,
+    Ubuntu,
+    Cantarell,
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
