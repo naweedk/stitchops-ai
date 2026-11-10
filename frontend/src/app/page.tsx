@@ -23,6 +23,7 @@ import Stack from '@mui/material/Stack'
 import Paper from '@mui/material/Paper'
 import Chip from '@mui/material/Chip'
 import Divider from '@mui/material/Divider'
+import BackendStatus from '@/components/BackendStatus'
 
 export const metadata: Metadata = {
   title: 'Home',
@@ -142,7 +143,7 @@ export default function HomePage() {
           </Box>
 
           {/* ----------------------------------------------------------------
-           * Status Banner
+           * Status Banner & Backend Communication
            * --------------------------------------------------------------- */}
           <Paper
             elevation={0}
@@ -160,6 +161,9 @@ export default function HomePage() {
               ✅ MUI v7 · Emotion SSR · Next.js 16 App Router · React 19 · TypeScript 5
             </Typography>
           </Paper>
+
+          {/* Live Full-Stack Communication Indicator */}
+          <BackendStatus />
 
         </Stack>
       </Container>
