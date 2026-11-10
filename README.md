@@ -139,7 +139,7 @@ Ensure `backend/.env` contains:
 ```env
 PORT=4000
 FRONTEND_URL=http://localhost:3000
-DATABASE_URL=postgresql://postgres:postgres@localhost:5432/stitchops_db?schema=public
+DATABASE_URL=
 GEMINI_API_KEY=
 ```
 
@@ -205,18 +205,3 @@ pnpm dev
 | `pnpm peers check` | `pnpm peers check` | Verifies clean peer dependency tree |
 
 ---
-
-## 8. Verification & Acceptance Status
-
-All 10 Project Initialization Milestones are complete and verified:
-
-- [x] **Milestone 1**: Environment inspected (`Node v22.22.2`, `pnpm 11.0.9`, mutually compatible version matrix established).
-- [x] **Milestone 2**: Clean project directory tree created; Git repository initialized with comprehensive `.gitignore`.
-- [x] **Milestone 3**: Next.js 16 initialized with React 19, TypeScript 5, and App Router.
-- [x] **Milestone 4**: Native ESLint 9 flat configuration (`eslint.config.mjs`) configured with zero peer warnings.
-- [x] **Milestone 5**: Material UI (MUI) v7 integrated with Emotion SSR Registry (`useServerInsertedHTML`) and custom design theme.
-- [x] **Milestone 6**: NestJS 12 initialized independently with TypeScript 6 decorator support.
-- [x] **Milestone 7**: Configured global `ValidationPipe`, CORS, Swagger documentation (`/api/docs`), and health endpoint (`/api/health`).
-- [x] **Milestone 8**: Prisma 6 ORM and PostgreSQL datasource configured with safe lifecycle handling in `PrismaService`.
-- [x] **Milestone 9**: End-to-end integration verified: simultaneous server execution confirmed with live frontend-to-backend communication.
-- [x] **Milestone 10**: Complete developer setup guide and architecture documented in `README.md`.
